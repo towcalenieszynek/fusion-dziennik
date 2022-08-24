@@ -16,7 +16,6 @@ import os
 from re import T, TEMPLATE
 from tokenize import group
 from types import NoneType
-os.system('color')
 from termcolor import colored
 from calendar import day_name
 from dataclasses import dataclass
@@ -976,8 +975,7 @@ def MAIN():
 
                                         
                                 if amounttt % 5 == 3:
-                                    sys.stdout.write('\033[2K\033[1G')
-                                    print('Klasa', end='\r')
+                                    print('Usmiechy w kopertkach oki')
                                 if amounttt % 5 == 4:
                                     sys.stdout.write('\033[2K\033[1G')
                                     print('Dzieñ', end='\r')
