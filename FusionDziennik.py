@@ -594,6 +594,8 @@ def MAIN():
                         print('Spróbuj ponownie.\n')
                         deleteLesson(listaForEditorUse)
                         return
+                    else:
+                        cursor.execute('DELETE')
 
             def addLessons():
                 print('\nIle lekcji chcesz dodaæ dla klasy {}?'.format(chosenClass))
@@ -969,16 +971,15 @@ def MAIN():
                                             pass
 
                                         else: #koniec if ogolnego 
-                                            print('Spróbuj ponownie. \n')                                
-                                        
-                                            
-
-                                        
+                                            print('Spróbuj ponownie. \n')                               
                                 if amounttt % 5 == 3:
-                                    print('Usmiechy w kopertkach oki')
+                                    print('Aby zmieniæ klasê, usuñ tê lekcjê, a nastêpnie dodaj now±.')
+                                    LessonsScheduleEditor()
                                 if amounttt % 5 == 4:
-                                    sys.stdout.write('\033[2K\033[1G')
-                                    print('Dzieñ', end='\r')
+                                    print('Wybierz dzieñ, na który ma zostaæ przeniesiony przedmiot {} ({}, nr godziny {}) z klas± {}:'.format(GetComponentOfLessonToEdit['przedmiot'], downloadTeacherData(GetComponentOfLessonToEdit['idNauczyciela']), str(GetComponentOfLessonToEdit['nrGodziny']), GetComponentOfLessonToEdit['klasa']))
+                                    for x in daysOfWeek.keys():
+                                        print('{}. {}'.format(str(x), daysOfWeek[x]))
+
                             else:
                                 waitUntil(keyboard.read_key() == "up", increment())
                                 if amounttt % 5 == 0:
