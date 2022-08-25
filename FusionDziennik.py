@@ -697,7 +697,7 @@ def MAIN():
 
             def editLesson(lista):
                 global amounttt
-                amounttt = 0
+                amounttt, klawisz = 0, None
                 # print('Klasa: '+chosenClass)
                 # print('Dzieñ: '+str(daysOfWeek[chosenDayOfWeek]))
                 print('Wybierz numer lekcji: ')
@@ -738,9 +738,10 @@ def MAIN():
                             }
                             amounttt = 0
                             decisionBeenMade = False
+                            tajm.sleep(0.4)
                             while decisionBeenMade == False:
-                                print('Loop')
-                                if keyboard.read_key() == 'enter':
+                                klawisz = keyboard.read_key()
+                                if klawisz == 'enter':
                                     decisionBeenMade = True
                                     dupa = input()
                                     if amounttt % 5 == 0:
@@ -924,7 +925,7 @@ def MAIN():
                                                 print('Wybierz nauczyciela przedmiotu {} dla klasy {}:\n'.format(wybranyPrzedmiot, GetComponentOfLessonToEdit['klasa']))
                                                 gitNauczyciele = purify(cursor.fetchall())
                                                 for x in range(len(gitNauczyciele)):
-                                                    print('{}. {}'.format(str(x+1), gitNauczyciele[x]))
+                                                    print('{}. {}'.format(str(x+1), downloadTeacherData(gitNauczyciele[x])))
                                                 good = False
                                                 while good != True:
                                                     try:
@@ -1034,10 +1035,8 @@ def MAIN():
                                                 print('Spróbuj ponownie. \n')
                                         
 
-                                else:
-                                    print('Czekam na strzalke!')
-                                    waitUntil(keyboard.read_key() == "up", increment())
-                                    print('Strzalka kliknieta!')
+                                elif klawisz == "up":
+                                    increment()
                                     if amounttt % 5 == 0:
                                         sys.stdout.write('\033[2K\033[1G')
                                         print('Numer godziny', end='\r')
@@ -1053,7 +1052,9 @@ def MAIN():
                                     if amounttt % 5 == 4:
                                         sys.stdout.write('\033[2K\033[1G')
                                         print('Dzieñ', end='\r')
-                                
+                                    tajm.sleep(0.25)
+                                else:
+                                    editLesson(listaForEditorUse)
 
 
             def downloadTeacherData(idTeachera):
