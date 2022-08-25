@@ -694,309 +694,319 @@ def MAIN():
                 # print('Dzieñ: '+str(daysOfWeek[chosenDayOfWeek]))
                 print('Wybierz numer lekcji: ')
                 choice = input()
-                if choice.isdigit() == False:
-                    print('Spróbuj ponownie.\n')
-                    editLesson(listaForEditorUse)
+                if choice == '':
+                    LessonsScheduleEditor()
                 else:
-                    choice = int(choice)
-                    numerLekcyjkiPilny = choice
-                    if int(len(lista) / 4) < choice:
-                        print('Wybrano b³êdn± lekcjê. Spróbuj ponownie. \n')
+                    if choice.isdigit() == False:
+                        print('Spróbuj ponownie.\n')
                         editLesson(listaForEditorUse)
-                        return
                     else:
-                        idLekcji = lista[choice*4 - 1]
-                        decisionBeenMade = None
-                        cursor.execute('SELECT nrgodziny, idnauczyciela, lekcja, klasa, dzien FROM planlekcji WHERE idlekcji = %s ORDER BY nrgodziny ASC LIMIT 1', (idLekcji, ))
-                        fetch = cursor.fetchone()
-                        print('')
-                        print('Numer godziny: {} ({} - {})'.format(str(fetch[0]), printableTime(fetch[0], 'start'), printableTime(fetch[0], 'end')))
-                        print('Nauczyciel: {} (ID: {})'.format(downloadTeacherData(fetch[1]), str(fetch[1])))
-                        print('Przedmiot: {}'.format(fetch[2]))
-                        print('Klasa: '+chosenClass)
-                        print('Dzieñ: '+str(daysOfWeek[chosenDayOfWeek]+'\n'))
-                        print('Który parametr modyfikujesz?\n')
-                        GetComponentOfLessonToEdit = {
-                            'nrGodziny': int(fetch[0]),
-                            'idNauczyciela': fetch[1],
-                            'przedmiot': fetch[2],
-                            'klasa': chosenClass,
-                            'rawDzien': int(chosenDayOfWeek),
-                            'dzien': daysOfWeek[chosenDayOfWeek],
-                            'idLekcji': idLekcji
-                        }
-                        amounttt = 0
-                        decisionBeenMade = False
-                        while decisionBeenMade == False:
-                            if keyboard.read_key() == 'enter':
-                                decisionBeenMade = True
-                                dupa = input()
-                                if amounttt % 5 == 0:
-                                    
-                                    print('Obecny parametr (numer godziny): {}'.format(str(fetch[0])))
-                                    print('Wybierz godzinê na któr± chcesz przenie¶æ dan± lekcjê: \n')
-
-                                    # robimy listê wszystkich godzin w szkole
-                                    cursor.execute('SELECT nrgodziny FROM siatkagodzin')
-                                    wszystkieGodziny = cursor.fetchall()
-                                    for _ in range(len(wszystkieGodziny)):
-                                        wszystkieGodziny.append(wszystkieGodziny[0][0])
-                                        wszystkieGodziny.pop(0)
-
-                                    # robimy listê godzin, na których uczy wybrany nauczyciel w kontek¶cie ca³ej szko³y 
-                                    cursor.execute('SELECT nrgodziny FROM planlekcji WHERE idnauczyciela = %s AND dzien = %s', (fetch[1], chosenDayOfWeek))
-                                    hoursWhenTeacherIsBusy = cursor.fetchall()
-                                    if type(hoursWhenTeacherIsBusy) == NoneType:
-                                        hoursWhenTeacherIsBusy = []
-                                    else:
-                                        for _ in range(len(hoursWhenTeacherIsBusy)):
-                                            hoursWhenTeacherIsBusy.append(hoursWhenTeacherIsBusy[0][0])
-                                            hoursWhenTeacherIsBusy.pop(0)
-                                    
-                                    # robimy listê godzin, kiedy dana klasa ma lekcjê
-                                    cursor.execute('SELECT nrgodziny FROM planlekcji WHERE klasa = %s AND dzien = %s', (chosenClass, chosenDayOfWeek))
-                                    hoursWhenClassIsBusy = cursor.fetchall()
-                                    if type(hoursWhenClassIsBusy) == NoneType:
-                                        hoursWhenClassIsBusy = []
-                                    else:
-                                        for _ in range(len(hoursWhenClassIsBusy)):
-                                            hoursWhenClassIsBusy.append(hoursWhenClassIsBusy[0][0])
-                                            hoursWhenClassIsBusy.pop(0)
-                                    freeLessons = []
-                                    for x in range(wszystkieGodziny[0], (wszystkieGodziny[len(wszystkieGodziny) - 1] + 1), 1):
-                                        conflict = ''
-                                        if x == choice:
-                                            conflict = conflict + 'GODZINA WYBRANEJ LEKCJI'
-                                        else:
-                                            if (x in hoursWhenTeacherIsBusy) == True:
-                                                cursor.execute('SELECT klasa FROM planlekcji WHERE nrgodziny = %s AND idnauczyciela = %s AND dzien = %s',(x, fetch[1], chosenDayOfWeek))
-                                                conflict = conflict + 'NAUCZYCIEL ZAJÊTY (LEKCJA Z KLAS¡ ' + cursor.fetchone()[0]+')    '
-                                            if (x in hoursWhenClassIsBusy) == True:
-                                                cursor.execute('SELECT idnauczyciela FROM planlekcji WHERE nrgodziny = %s AND klasa = %s AND dzien = %s', (x, chosenClass, chosenDayOfWeek))
-                                                conflict = conflict + 'KLASA ZAJÊTA (LEKCJA Z {})'.format(downloadTeacherData(cursor.fetchone()[0]))
-                                        if conflict == '':
-                                            conflict = 'WOLNA'
-                                            freeLessons.append(x)
-                                        print('{}. {}'.format(str(x), conflict))
-                                    # dupa = input()
-                                    sys.stdout.write("\033[K")
-                                    wybor = input()
-                                    if wybor.isdigit() == False:
-                                        print('Spróbuj ponownie. \n')
-                                        editLesson(listaForEditorUse)
-                                        return
-                                    else:                            
-                                        wybor = int(wybor)
-                                        if (wybor in freeLessons) == False:
-                                            print('Spróbuj ponownie. \n')
-                                            editLesson(listaForEditorUse)
-                                            return
-                                        else:
-                                            print('Czy na pewno chcesz zamieniæ lekcjê {} ({}) z godziny lekcyjnej nr {} na godzinê nr {}?'.format(fetch[2], downloadTeacherData(fetch[1]), str(fetch[0]), str(wybor)))
-                                            wybur = input()
-                                            if wybur == '' or 'tak' or 'Tak' or 'TAK':
-                                                cursor.execute('UPDATE planlekcji SET nrgodziny = %s WHERE idlekcji = %s', (wybor, idLekcji))
-                                                mydb.commit()
-                                                print('Aktualizacja planu udana.')
-                                            LessonsScheduleEditor()
-                                            return
-
-                                if amounttt % 5 == 1:
-                                    
-                                    print('Wybierz nauczyciela, który ma poprowadziæ dan± lekcjê: (je¶li nie widzisz chcianego nauczyciela, zmieñ przedmiot)')
-                                    cursor.execute('SELECT idnauczyciela FROM nauczyciele WHERE przedmiot = %s', (fetch[2], ))
-                                    nauczycieleSpelniajacyWymagania = purify(cursor.fetchall())
-                                    nauczycieleSpelniajacyWymagania.pop(nauczycieleSpelniajacyWymagania.index(fetch[1]))
-                                    conflictTeachers = []
-                                    for x in range(len(nauczycieleSpelniajacyWymagania)):
-                                        additionalInfo = ''
-                                        cursor.execute('SELECT uczoneKlasy FROM nauczyciele WHERE idnauczyciela = %s', (nauczycieleSpelniajacyWymagania[x],))
-                                        uczoneKlasy = cursor.fetchone()[0]
-                                        if (chosenClass in uczoneKlasy) == False:
-                                            additionalInfo += '!NAUCZYCIEL NIE UCZY KLASY! '
-                                            conflictTeachers.append(x)
-                                            conflictTeachers.append('class')
-                                        cursor.execute('SELECT klasa FROM planlekcji WHERE nrgodziny = %s AND idnauczyciela = %s AND dzien = %s', (fetch[0], nauczycieleSpelniajacyWymagania[x], chosenDayOfWeek))
-                                        rezultat = cursor.fetchone()
-                                        if type(rezultat) != NoneType:
-                                            additionalInfo += '!NAUCZYCIEL JEST ZAJÊTY (LEKCJA Z KLAS¡ {})!'.format(rezultat[0])
-                                            conflictTeachers.append(x)
-                                            conflictTeachers.append('busy')
-                                        print('{}. {}   {}'.format(str(x + 1), downloadTeacherData(nauczycieleSpelniajacyWymagania[x]), additionalInfo))
+                        choice = int(choice)
+                        numerLekcyjkiPilny = choice
+                        if int(len(lista) / 4) < choice:
+                            print('Wybrano b³êdn± lekcjê. Spróbuj ponownie. \n')
+                            editLesson(listaForEditorUse)
+                            return
+                        else:
+                            idLekcji = lista[choice*4 - 1]
+                            decisionBeenMade = None
+                            cursor.execute('SELECT nrgodziny, idnauczyciela, lekcja, klasa, dzien FROM planlekcji WHERE idlekcji = %s ORDER BY nrgodziny ASC LIMIT 1', (idLekcji, ))
+                            fetch = cursor.fetchone()
+                            print('')
+                            print('Numer godziny: {} ({} - {})'.format(str(fetch[0]), printableTime(fetch[0], 'start'), printableTime(fetch[0], 'end')))
+                            print('Nauczyciel: {} (ID: {})'.format(downloadTeacherData(fetch[1]), str(fetch[1])))
+                            print('Przedmiot: {}'.format(fetch[2]))
+                            print('Klasa: '+chosenClass)
+                            print('Dzieñ: '+str(daysOfWeek[chosenDayOfWeek]+'\n'))
+                            print('Który parametr modyfikujesz?\n')
+                            GetComponentOfLessonToEdit = {
+                                'nrGodziny': int(fetch[0]),
+                                'idNauczyciela': fetch[1],
+                                'przedmiot': fetch[2],
+                                'klasa': chosenClass,
+                                'rawDzien': int(chosenDayOfWeek),
+                                'dzien': daysOfWeek[chosenDayOfWeek],
+                                'idLekcji': idLekcji
+                            }
+                            amounttt = 0
+                            decisionBeenMade = False
+                            while decisionBeenMade == False:
+                                if keyboard.read_key() == 'enter':
+                                    decisionBeenMade = True
                                     dupa = input()
-                                    del dupa
-                                    print('', end='\r')
-                                    sys.stdout.write('\033[2K\033[1G')
-                                    choice = ''
-                                    good = False
-                                    while good != True:
-                                        try:
-                                            print('Wybierz nauczyciela: ')
-                                            choice = input()
-                                            nauczycieleSpelniajacyWymagania[int(choice) - 1]
-                                            good = True
-                                        except:
-                                            print('Spróbuj ponownie. \n')
+                                    if amounttt % 5 == 0:
+                                        
+                                        print('Obecny parametr (numer godziny): {}'.format(str(fetch[0])))
+                                        print('Wybierz godzinê na któr± chcesz przenie¶æ dan± lekcjê: \n')
 
-                                    choice = int(choice) - 1
-                                    if choice in conflictTeachers:
-                                        index = conflictTeachers.index(choice)
-                                        if conflictTeachers[index + 1] == 'busy':
-                                            print('Nauczyciel jest zajêty. Przesuñ godziny, a nastêpnie spróbuj ponownie.\n')
+                                        # robimy listê wszystkich godzin w szkole
+                                        cursor.execute('SELECT nrgodziny FROM siatkagodzin')
+                                        wszystkieGodziny = cursor.fetchall()
+                                        for _ in range(len(wszystkieGodziny)):
+                                            wszystkieGodziny.append(wszystkieGodziny[0][0])
+                                            wszystkieGodziny.pop(0)
+
+                                        # robimy listê godzin, na których uczy wybrany nauczyciel w kontek¶cie ca³ej szko³y 
+                                        cursor.execute('SELECT nrgodziny FROM planlekcji WHERE idnauczyciela = %s AND dzien = %s', (fetch[1], chosenDayOfWeek))
+                                        hoursWhenTeacherIsBusy = cursor.fetchall()
+                                        if type(hoursWhenTeacherIsBusy) == NoneType:
+                                            hoursWhenTeacherIsBusy = []
                                         else:
-                                            
-                                            print('Nauczyciel nie uczy danej klasy. Czy chcesz dodaæ go do listy nauczycieli ucz±cych klasê {}?'.format(chosenClass))
-                                            wybur = input() 
-                                            if wybur == '' or 'tak' or 'Tak':
-                                                cursor.execute('SELECT uczoneKlasy FROM nauczyciele WHERE idnauczyciela = %s', (nauczycieleSpelniajacyWymagania[choice],))
-                                                uczoneKlasy = cursor.fetchone()[0]
-                                                if uczoneKlasy[len(uczoneKlasy)-1] != ';':
-                                                    uczoneKlasy += ';'
-                                                uczoneKlasy += chosenClass
-                                                cursor.execute('UPDATE nauczyciele SET uczoneKlasy = %s WHERE idnauczyciela = %s', (uczoneKlasy, nauczycieleSpelniajacyWymagania[choice]))
-                                                mydb.commit()
+                                            for _ in range(len(hoursWhenTeacherIsBusy)):
+                                                hoursWhenTeacherIsBusy.append(hoursWhenTeacherIsBusy[0][0])
+                                                hoursWhenTeacherIsBusy.pop(0)
+                                        
+                                        # robimy listê godzin, kiedy dana klasa ma lekcjê
+                                        cursor.execute('SELECT nrgodziny FROM planlekcji WHERE klasa = %s AND dzien = %s', (chosenClass, chosenDayOfWeek))
+                                        hoursWhenClassIsBusy = cursor.fetchall()
+                                        if type(hoursWhenClassIsBusy) == NoneType:
+                                            hoursWhenClassIsBusy = []
+                                        else:
+                                            for _ in range(len(hoursWhenClassIsBusy)):
+                                                hoursWhenClassIsBusy.append(hoursWhenClassIsBusy[0][0])
+                                                hoursWhenClassIsBusy.pop(0)
+                                        freeLessons = []
+                                        for x in range(wszystkieGodziny[0], (wszystkieGodziny[len(wszystkieGodziny) - 1] + 1), 1):
+                                            conflict = ''
+                                            if x == GetComponentOfLessonToEdit['nrGodziny']:
+                                                conflict = conflict + 'GODZINA WYBRANEJ LEKCJI'
                                             else:
-                                                editLesson(listaForEditorUse)
-                                    else:
-                                        print('Czy na pewno chcesz zmieniæ nauczyciela lekcji nr {} dla klasy {} na {}?'.format(str(fetch[0]), chosenClass, downloadTeacherData(nauczycieleSpelniajacyWymagania[choice])))
-                                        wybur = input()
-                                        if wybur != 'nie' or 'n' or 'Nie':
-                                            editLesson(listaForEditorUse)
-                                            return
-                                        else:
-                                            cursor.execute('UPDATE planlekcji SET idnauczyciela = %s WHERE idlekcji = %s', (nauczycieleSpelniajacyWymagania[choice], idLekcji)) 
-                                            print('Aktualizacja planu udana.\n')
-
-                                if amounttt % 5 == 2:
-                                    print('Wybierz przedmiot, na który chcesz zamieniæ lekcjê {} ({}) na godzinie lekcyjnej nr {}:'.format(fetch[2], downloadTeacherData(fetch[1]), fetch[0]))
-                                    lajk = '%'+chosenClass+'%'
-                                    cursor.execute('SELECT DISTINCT przedmiot FROM nauczyciele WHERE uczoneKlasy LIKE %s', (lajk, ))
-                                    dostepnePrzedmioty = purify(cursor.fetchall())
-                                    cursor.execute('SELECT DISTINCT przedmiot FROM nauczyciele')
-                                    allPrzedmioty = purify(cursor.fetchall())
-                                    unikalneNieUczonePrzedmioty = [a for a in allPrzedmioty if a not in dostepnePrzedmioty]
-                                    del allPrzedmioty
-                                    for x in range(len(dostepnePrzedmioty)):
-                                        theSame = ''
-                                        if dostepnePrzedmioty[x] == fetch[2]:
-                                            theSame.join('  !! TEN SAM PRZEDMIOT !!')
-                                        print('{}. {}'.format(str(x+1), dostepnePrzedmioty[x]))
-                                    print('\nPRZEDMIOTY, KTÓRE NIE S¡ PRZYPISANE DO DANEJ KLASY\n')
-                                    for y in range(len(unikalneNieUczonePrzedmioty)):
-                                        print('{}. {}'.format(x+1+y+1, unikalneNieUczonePrzedmioty[y]))
-                                    print('')
-                                    good = False
-                                    while good != True:
-                                        try:
-                                            print('Wybierz przedmiot: ')
-                                            choice = input()
-                                            choice = int(choice)
-                                            good = True
-                                        except:
-                                            print('Spróbuj ponownie. \n')
-                                    if choice > len(dostepnePrzedmioty)+len(unikalneNieUczonePrzedmioty):
-                                        print('Spróbuj ponownie. \n')
-                                    else:
-
-                                        if choice <= len(dostepnePrzedmioty): 
-                                            # tutaj robimy kiedy przedmiot jest juz od nauczyciela uczacego
-                                            wybranyPrzedmiot = dostepnePrzedmioty[choice-1]
-                                            cursor.execute('SELECT idnauczyciela FROM nauczyciele WHERE przedmiot = %s AND uczoneKlasy LIKE %s', (wybranyPrzedmiot, str('%'+GetComponentOfLessonToEdit['klasa']+'%')))
-                                            print('Wybierz nauczyciela przedmiotu {} dla klasy {}:\n'.format(wybranyPrzedmiot, GetComponentOfLessonToEdit['klasa']))
-                                            gitNauczyciele = purify(cursor.fetchall())
-                                            for x in range(len(gitNauczyciele)):
-                                                print('{}. {}'.format(str(x+1), gitNauczyciele[x]))
-                                            good = False
-                                            while good != True:
-                                                try:
-                                                    choice = input('Wybór: ')
-                                                    choice = int(choice)
-                                                    teacherID = gitNauczyciele[choice-1]
-                                                    good = True
-                                                except:
-                                                    print('Spróbuj ponownie.\n')   
-                                            cursor.execute('UPDATE planlekcji SET idnauczyciela = %s AND lekcja = %s WHERE idlekcji = %s', (teacherID, wybranyPrzedmiot, GetComponentOfLessonToEdit['idLekcji']))
-                                            mydb.commit() 
-                                            print('Aktualizacja planu udana.')
-
-
-                                        elif choice <= len(dostepnePrzedmioty)+len(unikalneNieUczonePrzedmioty):
-                                            # tutaj robimy procedure dodawania klasy do przedmiotu !!
-                                            busyTeachers = []
-                                            wybranyPrzedmiot = unikalneNieUczonePrzedmioty[choice-len(dostepnePrzedmioty)-1]
-                                            cursor.execute('SELECT DISTINCT idnauczyciela FROM nauczyciele WHERE przedmiot = %s', (wybranyPrzedmiot, ))
-                                            gitNauczyciele = purify(cursor.fetchall())
-                                            print('Wybierz nauczyciela przedmiotu {} dla klasy {}:\n(spowoduje to dodanie wybranego nauczyciela do listy ucz±cych dan± klasê)\n'.format(wybranyPrzedmiot, GetComponentOfLessonToEdit['klasa']))
-                                            for x in range(len(gitNauczyciele)):
-                                                cursor.execute('SELECT nrgodziny FROM planlekcji WHERE idnauczyciela = %s AND dzien = %s', (gitNauczyciele[x], GetComponentOfLessonToEdit['rawDzien']))
-                                                if (GetComponentOfLessonToEdit['nrGodziny'] in purify(cursor.fetchall())) == True: 
-                                                    busyTeachers.append(gitNauczyciele[x])
-                                                    cursor.execute('SELECT klasa FROM planlekcji WHERE idnauczyciela = %s AND nrgodziny = %s AND dzien = %s', (gitNauczyciele[x], GetComponentOfLessonToEdit['nrGodziny'], GetComponentOfLessonToEdit['rawDzien']))
-                                                    klasa = cursor.fetchall()
-                                                    print('{}. {}   !NAUCZYCIEL ZAJÊTY NA GODZINIE NR {} (KLASA {})!\n'.format(str(x+1), downloadTeacherData(gitNauczyciele[x]), GetComponentOfLessonToEdit['nrGodziny'], purify(klasa)[0]))
-                                                    del klasa
+                                                if (x in hoursWhenTeacherIsBusy) == True:
+                                                    cursor.execute('SELECT klasa FROM planlekcji WHERE nrgodziny = %s AND idnauczyciela = %s AND dzien = %s',(x, fetch[1], chosenDayOfWeek))
+                                                    conflict = conflict + 'NAUCZYCIEL ZAJÊTY (LEKCJA Z KLAS¡ ' + cursor.fetchone()[0]+')    '
+                                                if (x in hoursWhenClassIsBusy) == True:
+                                                    cursor.execute('SELECT idnauczyciela FROM planlekcji WHERE nrgodziny = %s AND klasa = %s AND dzien = %s', (x, chosenClass, chosenDayOfWeek))
+                                                    conflict = conflict + 'KLASA ZAJÊTA (LEKCJA Z {})'.format(downloadTeacherData(cursor.fetchone()[0]))
+                                            if conflict == '':
+                                                conflict = 'WOLNA'
+                                                freeLessons.append(x)
+                                            print('{}. {}'.format(str(x), conflict))
+                                        # dupa = input()
+                                        sys.stdout.write("\033[K")
+                                        good = False
+                                        while good == False:
+                                            try:
+                                                wybor = input()
+                                                if wybor == '':
+                                                    LessonsScheduleEditor()
+                                                    return
                                                 else:
-                                                    print('{}. {}'.format(str(x+1), downloadTeacherData(gitNauczyciele[x])))
-                                            good = False
-                                            while good != True:
-                                                try:
-                                                    choice = input('Wybór: ')
-                                                    choice = int(choice)
-                                                    teacherID = gitNauczyciele[choice-1]
+                                                    wybor = int(wybor)
+                                                    print('Twoj wybor to: ({}) {} '.format(type(wybor), wybor))
+                                                    print('freeLessons = {}'.format(freeLessons))
+                                                    print(type(freeLessons[0]))
+                                                    freeLessons.index(wybor)
                                                     good = True
-                                                except:
-                                                    print('Spróbuj ponownie.\n')                           
-                                            
-                                            if (teacherID in busyTeachers) == True:
-                                                print('Nauczyciel zajêty. Zwolnij termin i spróbuj ponownie.\n')
-                                                Menu()
-                                                return
+                                            except:
+                                                print('Spróbuj ponownie. \n')
+                                        print('Czy na pewno chcesz zamieniæ lekcjê {} ({}) z godziny lekcyjnej nr {} na godzinê nr {}?'.format(fetch[2], downloadTeacherData(fetch[1]), str(fetch[0]), str(wybor)))
+                                        wybur = input()
+                                        if wybur == '' or 'tak' or 'Tak' or 'TAK':
+                                            cursor.execute('UPDATE planlekcji SET nrgodziny = %s WHERE idlekcji = %s', (wybor, idLekcji))
+                                            mydb.commit()
+                                            print('Aktualizacja planu udana.')
+                                            LessonsScheduleEditor()
+                                        else:
+                                            LessonsScheduleEditor()
+                                        return
+
+
+                                    if amounttt % 5 == 1:
+                                        
+                                        print('Wybierz nauczyciela, który ma poprowadziæ dan± lekcjê: (je¶li nie widzisz chcianego nauczyciela, zmieñ przedmiot)')
+                                        cursor.execute('SELECT idnauczyciela FROM nauczyciele WHERE przedmiot = %s', (fetch[2], ))
+                                        nauczycieleSpelniajacyWymagania = purify(cursor.fetchall())
+                                        nauczycieleSpelniajacyWymagania.pop(nauczycieleSpelniajacyWymagania.index(fetch[1]))
+                                        conflictTeachers = []
+                                        for x in range(len(nauczycieleSpelniajacyWymagania)):
+                                            additionalInfo = ''
+                                            cursor.execute('SELECT uczoneKlasy FROM nauczyciele WHERE idnauczyciela = %s', (nauczycieleSpelniajacyWymagania[x],))
+                                            uczoneKlasy = cursor.fetchone()[0]
+                                            if (chosenClass in uczoneKlasy) == False:
+                                                additionalInfo += '!NAUCZYCIEL NIE UCZY KLASY! '
+                                                conflictTeachers.append(x)
+                                                conflictTeachers.append('class')
+                                            cursor.execute('SELECT klasa FROM planlekcji WHERE nrgodziny = %s AND idnauczyciela = %s AND dzien = %s', (fetch[0], nauczycieleSpelniajacyWymagania[x], chosenDayOfWeek))
+                                            rezultat = cursor.fetchone()
+                                            if type(rezultat) != NoneType:
+                                                additionalInfo += '!NAUCZYCIEL JEST ZAJÊTY (LEKCJA Z KLAS¡ {})!'.format(rezultat[0])
+                                                conflictTeachers.append(x)
+                                                conflictTeachers.append('busy')
+                                            print('{}. {}   {}'.format(str(x + 1), downloadTeacherData(nauczycieleSpelniajacyWymagania[x]), additionalInfo))
+                                        dupa = input()
+                                        del dupa
+                                        print('', end='\r')
+                                        sys.stdout.write('\033[2K\033[1G')
+                                        choice = ''
+                                        good = False
+                                        while good != True:
+                                            try:
+                                                print('Wybierz nauczyciela: ')
+                                                choice = input()
+                                                nauczycieleSpelniajacyWymagania[int(choice) - 1]
+                                                good = True
+                                            except:
+                                                print('Spróbuj ponownie. \n')
+
+                                        choice = int(choice) - 1
+                                        if choice in conflictTeachers:
+                                            index = conflictTeachers.index(choice)
+                                            if conflictTeachers[index + 1] == 'busy':
+                                                print('Nauczyciel jest zajêty. Przesuñ godziny, a nastêpnie spróbuj ponownie.\n')
                                             else:
-                                                print('Czy na pewno chcesz dodaæ {} do listy nauczycieli ucz±cych klasê {}?'.format(downloadTeacherData(teacherID), GetComponentOfLessonToEdit['klasa']))
-                                                if input() == '' or 'tak' or 'TAK':
-                                                    cursor.execute('SELECT uczoneKlasy FROM nauczyciele WHERE idnauczyciela = %s', (teacherID,))
-                                                    uczoneKlasy = str(cursor.fetchone()[0])
+                                                
+                                                print('Nauczyciel nie uczy danej klasy. Czy chcesz dodaæ go do listy nauczycieli ucz±cych klasê {}?'.format(chosenClass))
+                                                wybur = input() 
+                                                if wybur == '' or 'tak' or 'Tak':
+                                                    cursor.execute('SELECT uczoneKlasy FROM nauczyciele WHERE idnauczyciela = %s', (nauczycieleSpelniajacyWymagania[choice],))
+                                                    uczoneKlasy = cursor.fetchone()[0]
                                                     if uczoneKlasy[len(uczoneKlasy)-1] != ';':
                                                         uczoneKlasy += ';'
-                                                    uczoneKlasy += GetComponentOfLessonToEdit['klasa']
-                                                    cursor.execute('UPDATE nauczyciele SET uczoneKlasy = %s WHERE idnauczyciela = %s', (uczoneKlasy, teacherID))
+                                                    uczoneKlasy += chosenClass
+                                                    cursor.execute('UPDATE nauczyciele SET uczoneKlasy = %s WHERE idnauczyciela = %s', (uczoneKlasy, nauczycieleSpelniajacyWymagania[choice]))
                                                     mydb.commit()
-                                                    print('Nast±pi reset funkcji. Wpisz numer tej lekcji ( dla przypomnienia {} :) ), a potem wybierz tê lekcjê ( dla przypomnienia {} :) ).'.format(str(numerLekcyjkiPilny), str(wybranyPrzedmiot)))
-                                                    editLesson(listaForEditorUse)
-                                                    pass
-                                                    return
-
                                                 else:
-                                                    LessonsScheduleEditor()
-                                            pass
+                                                    editLesson(listaForEditorUse)
+                                        else:
+                                            print('Czy na pewno chcesz zmieniæ nauczyciela lekcji nr {} dla klasy {} na {}?'.format(str(fetch[0]), chosenClass, downloadTeacherData(nauczycieleSpelniajacyWymagania[choice])))
+                                            wybur = input()
+                                            if wybur != 'nie' or 'n' or 'Nie':
+                                                editLesson(listaForEditorUse)
+                                                return
+                                            else:
+                                                cursor.execute('UPDATE planlekcji SET idnauczyciela = %s WHERE idlekcji = %s', (nauczycieleSpelniajacyWymagania[choice], idLekcji)) 
+                                                print('Aktualizacja planu udana.\n')
 
-                                        else: #koniec if ogolnego 
-                                            print('Spróbuj ponownie. \n')                               
-                                if amounttt % 5 == 3:
-                                    print('Aby zmieniæ klasê, usuñ tê lekcjê, a nastêpnie dodaj now±.')
-                                    LessonsScheduleEditor()
-                                if amounttt % 5 == 4:
-                                    print('Wybierz dzieñ, na który ma zostaæ przeniesiony przedmiot {} ({}, nr godziny {}) z klas± {}:'.format(GetComponentOfLessonToEdit['przedmiot'], downloadTeacherData(GetComponentOfLessonToEdit['idNauczyciela']), str(GetComponentOfLessonToEdit['nrGodziny']), GetComponentOfLessonToEdit['klasa']))
-                                    for x in daysOfWeek.keys():
-                                        print('{}. {}'.format(str(x), daysOfWeek[x]))
+                                    if amounttt % 5 == 2:
+                                        print('Wybierz przedmiot, na który chcesz zamieniæ lekcjê {} ({}) na godzinie lekcyjnej nr {}:'.format(fetch[2], downloadTeacherData(fetch[1]), fetch[0]))
+                                        lajk = '%'+chosenClass+'%'
+                                        cursor.execute('SELECT DISTINCT przedmiot FROM nauczyciele WHERE uczoneKlasy LIKE %s', (lajk, ))
+                                        dostepnePrzedmioty = purify(cursor.fetchall())
+                                        cursor.execute('SELECT DISTINCT przedmiot FROM nauczyciele')
+                                        allPrzedmioty = purify(cursor.fetchall())
+                                        unikalneNieUczonePrzedmioty = [a for a in allPrzedmioty if a not in dostepnePrzedmioty]
+                                        del allPrzedmioty
+                                        for x in range(len(dostepnePrzedmioty)):
+                                            theSame = ''
+                                            if dostepnePrzedmioty[x] == fetch[2]:
+                                                theSame.join('  !! TEN SAM PRZEDMIOT !!')
+                                            print('{}. {}'.format(str(x+1), dostepnePrzedmioty[x]))
+                                        print('\nPRZEDMIOTY, KTÓRE NIE S¡ PRZYPISANE DO DANEJ KLASY\n')
+                                        for y in range(len(unikalneNieUczonePrzedmioty)):
+                                            print('{}. {}'.format(x+1+y+1, unikalneNieUczonePrzedmioty[y]))
+                                        print('')
+                                        good = False
+                                        while good != True:
+                                            try:
+                                                print('Wybierz przedmiot: ')
+                                                choice = input()
+                                                choice = int(choice)
+                                                good = True
+                                            except:
+                                                print('Spróbuj ponownie. \n')
+                                        if choice > len(dostepnePrzedmioty)+len(unikalneNieUczonePrzedmioty):
+                                            print('Spróbuj ponownie. \n')
+                                        else:
 
-                            else:
-                                waitUntil(keyboard.read_key() == "up", increment())
-                                if amounttt % 5 == 0:
-                                    sys.stdout.write('\033[2K\033[1G')
-                                    print('Numer godziny', end='\r')
-                                if amounttt % 5 == 1:
-                                    sys.stdout.write('\033[2K\033[1G')
-                                    print('Nauczyciel', end='\r')
-                                if amounttt % 5 == 2:
-                                    sys.stdout.write('\033[2K\033[1G')
-                                    print('Przedmiot', end='\r')
-                                if amounttt % 5 == 3:
-                                    sys.stdout.write('\033[2K\033[1G')
-                                    print('Klasa', end='\r')
-                                if amounttt % 5 == 4:
-                                    sys.stdout.write('\033[2K\033[1G')
-                                    print('Dzieñ', end='\r')
+                                            if choice <= len(dostepnePrzedmioty): 
+                                                # tutaj robimy kiedy przedmiot jest juz od nauczyciela uczacego
+                                                wybranyPrzedmiot = dostepnePrzedmioty[choice-1]
+                                                cursor.execute('SELECT idnauczyciela FROM nauczyciele WHERE przedmiot = %s AND uczoneKlasy LIKE %s', (wybranyPrzedmiot, str('%'+GetComponentOfLessonToEdit['klasa']+'%')))
+                                                print('Wybierz nauczyciela przedmiotu {} dla klasy {}:\n'.format(wybranyPrzedmiot, GetComponentOfLessonToEdit['klasa']))
+                                                gitNauczyciele = purify(cursor.fetchall())
+                                                for x in range(len(gitNauczyciele)):
+                                                    print('{}. {}'.format(str(x+1), gitNauczyciele[x]))
+                                                good = False
+                                                while good != True:
+                                                    try:
+                                                        choice = input('Wybór: ')
+                                                        choice = int(choice)
+                                                        teacherID = gitNauczyciele[choice-1]
+                                                        good = True
+                                                    except:
+                                                        print('Spróbuj ponownie.\n')   
+                                                cursor.execute('UPDATE planlekcji SET idnauczyciela = %s AND lekcja = %s WHERE idlekcji = %s', (teacherID, wybranyPrzedmiot, GetComponentOfLessonToEdit['idLekcji']))
+                                                mydb.commit() 
+                                                print('Aktualizacja planu udana.')
+
+
+                                            elif choice <= len(dostepnePrzedmioty)+len(unikalneNieUczonePrzedmioty):
+                                                # tutaj robimy procedure dodawania klasy do przedmiotu !!
+                                                busyTeachers = []
+                                                wybranyPrzedmiot = unikalneNieUczonePrzedmioty[choice-len(dostepnePrzedmioty)-1]
+                                                cursor.execute('SELECT DISTINCT idnauczyciela FROM nauczyciele WHERE przedmiot = %s', (wybranyPrzedmiot, ))
+                                                gitNauczyciele = purify(cursor.fetchall())
+                                                print('Wybierz nauczyciela przedmiotu {} dla klasy {}:\n(spowoduje to dodanie wybranego nauczyciela do listy ucz±cych dan± klasê)\n'.format(wybranyPrzedmiot, GetComponentOfLessonToEdit['klasa']))
+                                                for x in range(len(gitNauczyciele)):
+                                                    cursor.execute('SELECT nrgodziny FROM planlekcji WHERE idnauczyciela = %s AND dzien = %s', (gitNauczyciele[x], GetComponentOfLessonToEdit['rawDzien']))
+                                                    if (GetComponentOfLessonToEdit['nrGodziny'] in purify(cursor.fetchall())) == True: 
+                                                        busyTeachers.append(gitNauczyciele[x])
+                                                        cursor.execute('SELECT klasa FROM planlekcji WHERE idnauczyciela = %s AND nrgodziny = %s AND dzien = %s', (gitNauczyciele[x], GetComponentOfLessonToEdit['nrGodziny'], GetComponentOfLessonToEdit['rawDzien']))
+                                                        klasa = cursor.fetchall()
+                                                        print('{}. {}   !NAUCZYCIEL ZAJÊTY NA GODZINIE NR {} (KLASA {})!\n'.format(str(x+1), downloadTeacherData(gitNauczyciele[x]), GetComponentOfLessonToEdit['nrGodziny'], purify(klasa)[0]))
+                                                        del klasa
+                                                    else:
+                                                        print('{}. {}'.format(str(x+1), downloadTeacherData(gitNauczyciele[x])))
+                                                good = False
+                                                while good != True:
+                                                    try:
+                                                        choice = input('Wybór: ')
+                                                        choice = int(choice)
+                                                        teacherID = gitNauczyciele[choice-1]
+                                                        good = True
+                                                    except:
+                                                        print('Spróbuj ponownie.\n')                           
+                                                
+                                                if (teacherID in busyTeachers) == True:
+                                                    print('Nauczyciel zajêty. Zwolnij termin i spróbuj ponownie.\n')
+                                                    Menu()
+                                                    return
+                                                else:
+                                                    print('Czy na pewno chcesz dodaæ {} do listy nauczycieli ucz±cych klasê {}?'.format(downloadTeacherData(teacherID), GetComponentOfLessonToEdit['klasa']))
+                                                    if input() == '' or 'tak' or 'TAK':
+                                                        cursor.execute('SELECT uczoneKlasy FROM nauczyciele WHERE idnauczyciela = %s', (teacherID,))
+                                                        uczoneKlasy = str(cursor.fetchone()[0])
+                                                        if uczoneKlasy[len(uczoneKlasy)-1] != ';':
+                                                            uczoneKlasy += ';'
+                                                        uczoneKlasy += GetComponentOfLessonToEdit['klasa']
+                                                        cursor.execute('UPDATE nauczyciele SET uczoneKlasy = %s WHERE idnauczyciela = %s', (uczoneKlasy, teacherID))
+                                                        mydb.commit()
+                                                        print('Nast±pi reset funkcji. Wpisz numer tej lekcji ( dla przypomnienia {} :) ), a potem wybierz tê lekcjê ( dla przypomnienia {} :) ).'.format(str(numerLekcyjkiPilny), str(wybranyPrzedmiot)))
+                                                        editLesson(listaForEditorUse)
+                                                        pass
+                                                        return
+
+                                                    else:
+                                                        LessonsScheduleEditor()
+                                                pass
+
+                                            else: #koniec if ogolnego 
+                                                print('Spróbuj ponownie. \n')                               
+                                    if amounttt % 5 == 3:
+                                        print('Aby zmieniæ klasê, usuñ tê lekcjê, a nastêpnie dodaj now±.')
+                                        LessonsScheduleEditor()
+                                    if amounttt % 5 == 4:
+                                        print('Wybierz dzieñ, na który ma zostaæ przeniesiony przedmiot {} ({}, nr godziny {}) z klas± {}:'.format(GetComponentOfLessonToEdit['przedmiot'], downloadTeacherData(GetComponentOfLessonToEdit['idNauczyciela']), str(GetComponentOfLessonToEdit['nrGodziny']), GetComponentOfLessonToEdit['klasa']))
+                                        for x in daysOfWeek.keys():
+                                            print('{}. {}'.format(str(x), daysOfWeek[x]))
+
+                                else:
+                                    waitUntil(keyboard.read_key() == "up", increment())
+                                    if amounttt % 5 == 0:
+                                        sys.stdout.write('\033[2K\033[1G')
+                                        print('Numer godziny', end='\r')
+                                    if amounttt % 5 == 1:
+                                        sys.stdout.write('\033[2K\033[1G')
+                                        print('Nauczyciel', end='\r')
+                                    if amounttt % 5 == 2:
+                                        sys.stdout.write('\033[2K\033[1G')
+                                        print('Przedmiot', end='\r')
+                                    if amounttt % 5 == 3:
+                                        sys.stdout.write('\033[2K\033[1G')
+                                        print('Klasa', end='\r')
+                                    if amounttt % 5 == 4:
+                                        sys.stdout.write('\033[2K\033[1G')
+                                        print('Dzieñ', end='\r')
                                 
 
 
