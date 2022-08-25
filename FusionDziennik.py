@@ -16,6 +16,7 @@ import os
 from re import T, TEMPLATE
 from tokenize import group
 from types import NoneType
+from xml.etree.ElementTree import QName
 from termcolor import colored
 from calendar import day_name
 from dataclasses import dataclass
@@ -400,6 +401,9 @@ def MAIN():
             def NdStepLogin():
                 global login, groupStatus
                 passwd = input('Proszê podaj has³o: ')
+                if passwd == '':
+                    StStepLogin()
+                    return
                 sql = 'SELECT password FROM logdata WHERE login = %s'
                 cursor.execute(sql, (login,))
                 if str(cursor.fetchone()[0]) == passwd:
@@ -548,7 +552,7 @@ def MAIN():
                     print('\nWybierz operacjê:')
                     print('"1" - dodaj lekcje')
                 else:
-                    cursor.execute('SELECT nrgodziny, lekcja, idnauczyciela, idlekcji FROM planlekcji WHERE klasa = %s AND dzien = %s', (chosenClass, chosenDayOfWeek))
+                    cursor.execute('SELECT nrgodziny, lekcja, idnauczyciela, idlekcji FROM planlekcji WHERE klasa = %s AND dzien = %s ORDER BY nrgodziny', (chosenClass, chosenDayOfWeek))
                     tempFetch = cursor.fetchall()
                     LenOftempFetch = len(tempFetch)
                     for i in range(LenOftempFetch):
@@ -600,6 +604,9 @@ def MAIN():
             def addLessons():
                 print('\nIle lekcji chcesz dodaæ dla klasy {}?'.format(chosenClass))
                 amountOfLessonsToBeAdded = input()
+                if amountOfLessonsToBeAdded == '':
+                    LessonsScheduleEditor()
+                    return
                 if amountOfLessonsToBeAdded.isdigit() == False:
                     print('Spróbuj ponownie.\n')
                     addLessons()
@@ -690,6 +697,7 @@ def MAIN():
 
             def editLesson(lista):
                 global amounttt
+                amounttt = 0
                 # print('Klasa: '+chosenClass)
                 # print('Dzieñ: '+str(daysOfWeek[chosenDayOfWeek]))
                 print('Wybierz numer lekcji: ')
@@ -731,6 +739,7 @@ def MAIN():
                             amounttt = 0
                             decisionBeenMade = False
                             while decisionBeenMade == False:
+                                print('Loop')
                                 if keyboard.read_key() == 'enter':
                                     decisionBeenMade = True
                                     dupa = input()
@@ -985,13 +994,50 @@ def MAIN():
                                     if amounttt % 5 == 3:
                                         print('Aby zmieniæ klasê, usuñ tê lekcjê, a nastêpnie dodaj now±.')
                                         LessonsScheduleEditor()
+
                                     if amounttt % 5 == 4:
-                                        print('Wybierz dzieñ, na który ma zostaæ przeniesiony przedmiot {} ({}, nr godziny {}) z klas± {}:'.format(GetComponentOfLessonToEdit['przedmiot'], downloadTeacherData(GetComponentOfLessonToEdit['idNauczyciela']), str(GetComponentOfLessonToEdit['nrGodziny']), GetComponentOfLessonToEdit['klasa']))
+                                        print('Wybierz dzieñ (obecnie: {}), na który ma zostaæ przeniesiony przedmiot {} ({}, nr godziny {}) z klas± {}:'.format(GetComponentOfLessonToEdit['dzien'], GetComponentOfLessonToEdit['przedmiot'], downloadTeacherData(GetComponentOfLessonToEdit['idNauczyciela']), str(GetComponentOfLessonToEdit['nrGodziny']), GetComponentOfLessonToEdit['klasa']))
                                         for x in daysOfWeek.keys():
                                             print('{}. {}'.format(str(x), daysOfWeek[x]))
+                                        good = False
+                                        while good == False:
+                                            try:
+                                                wybor = input()
+                                                if wybor == '':
+                                                    LessonsScheduleEditor()
+                                                else:
+                                                    wybor = int(wybor)
+                                                    if daysOfWeek[wybor] == GetComponentOfLessonToEdit['dzien']:
+                                                        daysOfWeek[int(max(daysOfWeek.keys())) + 1]
+                                                    else:
+                                                        cursor.execute('SELECT idlekcji FROM planlekcji WHERE dzien = %s AND idnauczyciela = %s AND nrgodziny = %s', (wybor, GetComponentOfLessonToEdit['idNauczyciela'], GetComponentOfLessonToEdit['nrGodziny']))
+                                                        if type(cursor.fetchone()) != NoneType:
+                                                            print('Nauczyciel jest zajêty!')
+                                                            daysOfWeek[int(max(daysOfWeek.keys())) + 1]
+                                                        else:
+                                                            cursor.execute('SELECT idlekcji FROM planlekcji WHERE dzien = %s AND klasa = %s AND nrgodziny = %s', (wybor, GetComponentOfLessonToEdit['klasa'], GetComponentOfLessonToEdit['nrGodziny']))
+                                                            if type(cursor.fetchone()) != NoneType:
+                                                                print('Klasa jest zajêta!')
+                                                                daysOfWeek[int(max(daysOfWeek.keys())) + 1]
+                                                            else:
+                                                                print('Czy na pewno chcesz zmieniæ dzieñ lekcji {} ({}) z {} na {}?'.format(GetComponentOfLessonToEdit['przedmiot'], downloadTeacherData(GetComponentOfLessonToEdit['idNauczyciela']), GetComponentOfLessonToEdit['dzien'], daysOfWeek[wybor]))
+                                                                if input().upper() == '' or 'TAK':
+                                                                    #kod update'u
+                                                                    cursor.execute('UPDATE planlekcji SET dzien = %s WHERE idlekcji = %s', (wybor, GetComponentOfLessonToEdit['idLekcji']))
+                                                                    mydb.commit()
+                                                                    print('Aktualizacja planu udana.')
+                                                                    LessonsScheduleEditor()
+                                                                    return
+                                                                else:
+                                                                    LessonsScheduleEditor()
+                                            except:
+                                                print('Spróbuj ponownie. \n')
+                                        
 
                                 else:
+                                    print('Czekam na strzalke!')
                                     waitUntil(keyboard.read_key() == "up", increment())
+                                    print('Strzalka kliknieta!')
                                     if amounttt % 5 == 0:
                                         sys.stdout.write('\033[2K\033[1G')
                                         print('Numer godziny', end='\r')
@@ -1044,5 +1090,14 @@ def MAIN():
             print('Witaj w FusionDziennik! Jest godzina',currHour+'.')
             StStepLogin()
         except:
+            print('       __')
+            print('  _   / /')
+            print(' (_) | | ')
+            print('     | | ')
+            print('  _  | | ')
+            print(' (_) | | ')
+            print('      \_\\')
+            print('         ')
             print('Wyst±pi³ krytyczny b³±d. \n\n\n')
+            tajm.sleep(2)
 MAIN()
